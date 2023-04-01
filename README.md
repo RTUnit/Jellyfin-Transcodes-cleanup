@@ -34,6 +34,8 @@ Every user can have different available space configuration for transcodes direc
      - Maintenance of array variables internally used by cleanup script
      - Shutdown cleanup script if there is no TS segment appearing for given time period (1 hour)
 
+## Credits
+
 Idea of creating FFMPEG WRAP is taken from comment by **ManuLinares** here:
 https://github.com/jellyfin/jellyfin/issues/1986#issuecomment-1019555157
 
