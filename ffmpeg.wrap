@@ -1,0 +1,224 @@
+#!/bin/bash -
+#title           : ffmpeg properly downmix to stereo and downscale 4k to 1080p
+#description     :  This script is a wrapper for jellyfin ffmpeg to downmix audio
+#                :  to stereo using a custom formula, and downscale 4k to 1080p
+
+FFMPEG_DIR=/config/ffmpeg
+TRANSCODES_DIR=/config/transcodes
+CLEANUP_PROG=$FFMPEG_DIR/transcode.cleanup.sh
+
+SEMAPHORE_DIR=/config/semaphore # use RAM drive for FFMPEG transcoding PID and PAUSE files
+LOG_DIR=/config/log
+CLEANUP_LOG=$LOG_DIR/transcode.cleanup.log # create a single log file (easier when using OFF, WARN or INFO level logging)
+#SEMAPHORE_DIR=$FFMPEG_DIR/log # use mounted directory on host machine for easier access
+#LOG_DIR=$FFMPEG_DIR/log
+#CLEANUP_LOG=$LOG_DIR/transcode.cleanup.$$.log # create separate log file per each cleanup wrap trigger (easier for DEBUG or TRACE level logging)
+CLEANUP_PID=$SEMAPHORE_DIR/transcode.cleanup.pid
+
+#
+# Set the path/name of the configuration file
+#
+conf="$FFMPEG_DIR/ffmpeg.wrap.conf"
+# prop - reads value of a propery from the configuration file
+# use $(prop 'property.name') to read properties from a key=value lines in file
+function prop {
+    grep "^\\s*${1}\\s*=" $conf|cut -d'=' -f2-
+}
+
+#
+# $1 - Segment ID
+#
+# Returns FFMPEG last position from which the TS files are created (FFMPEG argument -START_NUMBER)
+# Position is set in variable $FFMPEG_POS, time of the last position change in $FFMPEG_POS_TIME
+# Full filepath to POS file in $POS_FILEPATH
+#
+function get_ffmpeg_pos {
+    local segment_id=$1
+    local POS_FILEPATH=$SEMAPHORE_DIR/${segment_id}.pos
+    if [ -f $POS_FILEPATH ]; then
+        FFMPEG_POS="$(head -1 $POS_FILEPATH)" # Sample value: 123 05-03-2023 12:20:17.655142648, where 123 is the position number
+        FFMPEG_POS_TIME="${FFMPEG_POS#* }"    # extract the part after the first space
+        FFMPEG_POS=${FFMPEG_POS%% *}          # extract the part before the first space
+    else
+        FFMPEG_POS=
+        FFMPEG_POS_TIME=
+    fi
+}
+
+# Log console and error output to log files in /config/ffmpeg/log
+CLEANUP_ENABLED=$(prop 'transcode.cleanup')
+CLEANUP_LOG_LEVEL=$(prop 'transcode.cleanup.log.level')
+ARGS_LOG_ENABLED=$(prop 'ffmpeg.args.log')
+DISABLE_FORCED_SUBTITLES=$(prop 'disable.forced.subtitles')
+OLD_TV_ASPECT_RATIO=$(prop '21:9')
+
+#ffmpeg="/usr/bin/ffmpeg"
+ffmpeg="/usr/lib/jellyfin-ffmpeg/ffmpeg"
+
+#Add quotes for arguments with "spaces", "semicolon" and "parentheses")
+for x in "${@}" ; do
+    # try to figure out if quoting was required for the $x (Arguments)
+    if [[ "$x" != "${x%[[:space:]]*}" ]] \
+    || [[ "$x" != "${x%[;]*}" ]] \
+    || [[ "$x" != "${x%(*}" ]] ; then
+        x="\""$x"\""
+    fi
+    _args=$_args" "$x
+done
+
+if [[ "$ARGS_LOG_ENABLED" == "true" ]]; then
+    echo "" >> $LOG_DIR/ffmpeg.args.log;
+fi
+
+# add multiple replace, like:
+#   _args=${_args/match/replace}
+#   you can use bash pattern matching described in 
+#   https://www.gnu.org/software/bash/manual/bash.html#Pattern-Matching
+
+# Downmix audio to stereo
+_args=${_args/-ac [3-9]/-af \"pan=stereo|FL < 0.5*FC + 0.3*FLC + 0.3*FL + 0.3*BL + 0.3*SL + 0.5*LFE | FR < 0.5*FC + 0.3*FRC + 0.3*FR + 0.3*BR + 0.3*SR + 0.5*LFE,volume=2\"}
+
+# Downscale 4k to 1080p
+#_args=${_args/zscale=s=3840x????/zscale=s=1920x1080}
+
+# Maybe change the codec in roku, I don't know, that is why I gave the examples I use above
+#_args=${_args/-codec:a:0 copy/-codec:a:0 aac}
+
+# Execute transcode cleanup process, which will remove oldest *.ts files when space is used for more than 80%
+# If parallel ffmpeg process will be launched then previous clean up process will be killed
+if [[ "$CLEANUP_ENABLED" == "true" ]]; then
+
+    #
+    # Create <SEGMENT ID>.pid file
+    # Clean-up script uses PID file to monitor segment TS files individually per stream
+    #
+    # Example: _args="hls_list_size 0 -y /config/transcodes/821fe9209bd1020f178e3fdfc2241b46.m3u8"
+    [[ $_args =~ -y[[:space:]]+$TRANSCODES_DIR/([^\.]+)\.[^\.]+$ ]]
+    SEGMENT_ID=${BASH_REMATCH[1]}
+    if [[ "$SEGMENT_ID" != "" ]]; then
+        WRAP_PID=$SEMAPHORE_DIR/$SEGMENT_ID.pid
+        if [[ "$ARGS_LOG_ENABLED" == "true" ]]; then echo "Capturing FFMPEG WRAP process PID $$ in file: $WRAP_PID" >> $LOG_DIR/ffmpeg.args.log; fi
+        echo $$ > $WRAP_PID
+    fi
+
+# WRAP_PAUSE=$SEMAPHORE_DIR/$SEGMENT_ID.pause
+# PAUSE_TEXT="PAUSE FILE NOT FOUND: $WRAP_PAUSE"
+# if [ -f $WRAP_PAUSE ]; then
+
+# PAUSE_PID=$(head -1 $WRAP_PAUSE)
+# if [ "$PAUSE_PID" != "" ]; then
+# STATE=
+# for STATE in $(ps -o state= -p $PAUSE_PID --ppid $PAUSE_PID --forest | awk 'FNR>1{print$1}'); do
+    # PAUSE_TEXT="PAUSE PID $PAUSE_PID STATE $STATE"
+    # break
+# done
+# if [ "$STATE" == "" ]; then
+    # PAUSE_TEXT="PAUSE PID $PAUSE_PID PROCESS DOES NOT EXIST"
+# fi
+# fi
+
+# fi
+    #
+    # Create <SEGMENT ID>.pos file
+    # Clean-up script uses POS file to monitor for playback position change. New position is specified with FFMPEG
+    # argument -start_number. Jellyfin calls FFMPEG with new -start_number even if old FFMPEG is still running.
+    #
+    # Example: _args="hls_list_size 0 -y /config/transcodes/821fe9209bd1020f178e3fdfc2241b46.m3u8"
+    [[ $_args =~ [[:space:]]+-start_number[[:space:]]+([0-9]+)[[:space:]]+ ]]
+    SEGMENT_POS=${BASH_REMATCH[1]}
+    WRAP_POS=$SEMAPHORE_DIR/$SEGMENT_ID.pos
+    if [[ "$SEGMENT_POS" == "" ]]; then
+        rm -f $WRAP_POS
+    else
+        get_ffmpeg_pos $SEGMENT_ID
+        if ([ "$FFMPEG_POS" != "" ] && [ $FFMPEG_POS -eq $SEGMENT_POS ]); then
+            if [[ "$ARGS_LOG_ENABLED" == "true" ]]; then echo "Earlier captured TS file ID of FFMPEG playback position $SEGMENT_POS in file has not changed: $WRAP_POS" >> $LOG_DIR/ffmpeg.args.log; fi
+        else
+            if [[ "$ARGS_LOG_ENABLED" == "true" ]]; then echo "Capturing TS file ID of FFMPEG playback position $SEGMENT_POS in file: $WRAP_POS" >> $LOG_DIR/ffmpeg.args.log; fi
+    #        echo "$SEGMENT_POS $PAUSE_TEXT" > $WRAP_POS
+            echo $SEGMENT_POS $(date "+%F %T.%9N") > $WRAP_POS # "+%Y-%m-%d %H:%M:%S.%9N"
+        fi
+    fi
+
+    #
+    # Identify client so that clean-up script can store segment file buffering times separately for each
+    #
+    WRAP_CLIENT=$SEMAPHORE_DIR/$SEGMENT_ID.client
+    CLIENT_ID=DEFAULT
+    [[ "$_args" == *"-i \"file:/media-crt/"* ]] && CLIENT_ID=CRT_TV
+    echo $CLIENT_ID > $WRAP_CLIENT
+    
+    PRINT_LOG_TIMESTAMP=1
+
+    if [[ "$CLEANUP_LOG_LEVEL" != "" ]] && [[ $CLEANUP_LOG_LEVEL -gt 0 ]]; then
+    
+#       if [[ "$_args" =~ .*(-i nullsrc|-version|-decoders|-encoders|-filters|-h filter=|-hwaccels).* ]]; then
+        if [[ "$_args" != *"$TRANSCODES_DIR"* ]]; then
+            echo "FFMPEG started without transcoding directory as argument, so will not launch clean-up process because there will be no transcoding files produced" >> $CLEANUP_LOG
+        else
+            #echo test
+            #sh -c 'nohup /bin/bash $CLEANUP_PROG '$CLEANUP_LOG_LEVEL' $PRINT_LOG_TIMESTAMP >> /config/ffmpeg/log/transcode.cleanup.'$$'.log 2>&1 &'
+            sh -c 'nohup /bin/bash '$CLEANUP_PROG' '$CLEANUP_LOG_LEVEL' '$PRINT_LOG_TIMESTAMP' >> '$CLEANUP_LOG' 2>&1 &'
+        fi
+    else
+        if [[ "$_args" != *"$TRANSCODES_DIR"* ]]; then
+            #echo test
+            sh -c 'nohup /bin/bash -c '$CLEANUP_PROG' 0 '$PRINT_LOG_TIMESTAMP' 2>&1 &'
+        fi
+    fi
+fi
+
+if [[ "$OLD_TV_ASPECT_RATIO" == "true" ]] && [[ "$_args" == *"-i \"file:/media-crt/"* ]]; then
+#
+# Crop+scale black bars of the video to maximum fit old TV screen (eg, 4:3 form factor)
+#
+# Force 21:9 (=2.33) aspect ratio to allow full screen zoom to 4:3 (=1.33) on older TV
+#
+    _args=$(echo "$_args" | sed -r 's/-vf \"?([^\" ]+)\"?/-vf \"setdar=dar=2.33,\1\"/')
+#
+# Unsuccessful testing crop+scale
+#
+    #_args=${_args/-vf \"?([^\" ]+)\"?/-vf \"crop=2832:2160:504:0,\1\"}
+    #_args=${_args/-vf ([^ ])/new ${BASH_REMATCH[1]}}
+    #_args=$(echo "$_args" | sed -r 's/-vf \"?([^\" ]+)\"?/-vf \"crop=2832:2160:504:0,\1\"/')
+    #_args=${_args/-autoscale [0-9]/}
+    #_args=$(echo "$_args" | sed -r 's/-vf \"?([^\" ]+)\"?/-vf \"scale_cuda=-1:640:format=yuv420p\"/')
+    #Same size, but unclear picture:
+    #_args=$(echo "$_args" | sed -r 's/-vf \"?([^\" ]+)\"?/-vf \"crop=100:1920,scale_cuda=100:1920:format=yuv420p\"/')
+    #Something working:
+    #_args=$(echo "$_args" | sed -r 's/-vf \"?([^\" ]+)\"?/-vf \"crop=640:640,setdar=dar=1.33,scale_cuda=3540:2700:format=yuv420p\"/') # crop=640:640,setsar=sar=1.5
+fi
+
+if [[ "$DISABLE_FORCED_SUBTITLES" == "true" ]]; then
+#
+# Disable forced subtitles
+# Forced subtitles may cause error for ffmpeg parameters specific to FireTV (for example, in a movie Avatar)
+#
+# Remove options such as: subtitles=f='/media/Movies/file.mkv':si=0:alpha=1:sub2video=1:fontsdir='/cache/attachments/123'
+#
+    _args=$(echo "$_args" | sed -r "s/,subtitles=f=[^,]+//") # specifies file containing subtitles (remove prefix comma , to avoid ,, in the output)
+fi
+
+#
+# Change number of threads to 1 - default 0 will spawn multiple threads based on many factors (CPU cores, encoding parameters, etc)
+# NOTE: Clean-up script will work as expected with multiple threads which is the default behavior, however single thread is enough for smooth operation
+_args=${_args/-threads 0/-threads 1}
+
+#_args=${_args/-hls_playlist_type vod/}
+#_args=${_args/-hls_list_size 0/-hls_list_size 5}
+
+# NOT WORKING: write to temp file and move to target ts file
+#_args="$_args -hls_flags temp_file"
+
+
+if [[ "$ARGS_LOG_ENABLED" == "true" ]]; then
+#
+# Output modified arguments to a log file (comment this line when not debugging)
+#
+    echo $_args >> $LOG_DIR/ffmpeg.args.log
+fi
+
+# Execute wrapper
+eval $ffmpeg $_args
+
+exit $?
