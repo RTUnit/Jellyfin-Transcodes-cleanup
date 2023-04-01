@@ -50,7 +50,6 @@ CLEANUP_ENABLED=$(prop 'transcode.cleanup')
 CLEANUP_LOG_LEVEL=$(prop 'transcode.cleanup.log.level')
 ARGS_LOG_ENABLED=$(prop 'ffmpeg.args.log')
 DISABLE_FORCED_SUBTITLES=$(prop 'disable.forced.subtitles')
-OLD_TV_ASPECT_RATIO=$(prop '21:9')
 
 #ffmpeg="/usr/bin/ffmpeg"
 ffmpeg="/usr/lib/jellyfin-ffmpeg/ffmpeg"
@@ -70,20 +69,6 @@ if [[ "$ARGS_LOG_ENABLED" == "true" ]]; then
     echo "" >> $LOG_DIR/ffmpeg.args.log;
 fi
 
-# add multiple replace, like:
-#   _args=${_args/match/replace}
-#   you can use bash pattern matching described in 
-#   https://www.gnu.org/software/bash/manual/bash.html#Pattern-Matching
-
-# Downmix audio to stereo
-_args=${_args/-ac [3-9]/-af \"pan=stereo|FL < 0.5*FC + 0.3*FLC + 0.3*FL + 0.3*BL + 0.3*SL + 0.5*LFE | FR < 0.5*FC + 0.3*FRC + 0.3*FR + 0.3*BR + 0.3*SR + 0.5*LFE,volume=2\"}
-
-# Downscale 4k to 1080p
-#_args=${_args/zscale=s=3840x????/zscale=s=1920x1080}
-
-# Maybe change the codec in roku, I don't know, that is why I gave the examples I use above
-#_args=${_args/-codec:a:0 copy/-codec:a:0 aac}
-
 # Execute transcode cleanup process, which will remove oldest *.ts files when space is used for more than 80%
 # If parallel ffmpeg process will be launched then previous clean up process will be killed
 if [[ "$CLEANUP_ENABLED" == "true" ]]; then
@@ -100,22 +85,6 @@ if [[ "$CLEANUP_ENABLED" == "true" ]]; then
         if [[ "$ARGS_LOG_ENABLED" == "true" ]]; then echo "Capturing FFMPEG WRAP process PID $$ in file: $WRAP_PID" >> $LOG_DIR/ffmpeg.args.log; fi
         echo $$ > $WRAP_PID
     fi
-
-# WRAP_PAUSE=$SEMAPHORE_DIR/$SEGMENT_ID.pause
-# PAUSE_TEXT="PAUSE FILE NOT FOUND: $WRAP_PAUSE"
-# if [ -f $WRAP_PAUSE ]; then
-
-# PAUSE_PID=$(head -1 $WRAP_PAUSE)
-# if [ "$PAUSE_PID" != "" ]; then
-# STATE=
-# for STATE in $(ps -o state= -p $PAUSE_PID --ppid $PAUSE_PID --forest | awk 'FNR>1{print$1}'); do
-    # PAUSE_TEXT="PAUSE PID $PAUSE_PID STATE $STATE"
-    # break
-# done
-# if [ "$STATE" == "" ]; then
-    # PAUSE_TEXT="PAUSE PID $PAUSE_PID PROCESS DOES NOT EXIST"
-# fi
-# fi
 
 # fi
     #
@@ -166,27 +135,6 @@ if [[ "$CLEANUP_ENABLED" == "true" ]]; then
             sh -c 'nohup /bin/bash -c '$CLEANUP_PROG' 0 '$PRINT_LOG_TIMESTAMP' 2>&1 &'
         fi
     fi
-fi
-
-if [[ "$OLD_TV_ASPECT_RATIO" == "true" ]] && [[ "$_args" == *"-i \"file:/media-crt/"* ]]; then
-#
-# Crop+scale black bars of the video to maximum fit old TV screen (eg, 4:3 form factor)
-#
-# Force 21:9 (=2.33) aspect ratio to allow full screen zoom to 4:3 (=1.33) on older TV
-#
-    _args=$(echo "$_args" | sed -r 's/-vf \"?([^\" ]+)\"?/-vf \"setdar=dar=2.33,\1\"/')
-#
-# Unsuccessful testing crop+scale
-#
-    #_args=${_args/-vf \"?([^\" ]+)\"?/-vf \"crop=2832:2160:504:0,\1\"}
-    #_args=${_args/-vf ([^ ])/new ${BASH_REMATCH[1]}}
-    #_args=$(echo "$_args" | sed -r 's/-vf \"?([^\" ]+)\"?/-vf \"crop=2832:2160:504:0,\1\"/')
-    #_args=${_args/-autoscale [0-9]/}
-    #_args=$(echo "$_args" | sed -r 's/-vf \"?([^\" ]+)\"?/-vf \"scale_cuda=-1:640:format=yuv420p\"/')
-    #Same size, but unclear picture:
-    #_args=$(echo "$_args" | sed -r 's/-vf \"?([^\" ]+)\"?/-vf \"crop=100:1920,scale_cuda=100:1920:format=yuv420p\"/')
-    #Something working:
-    #_args=$(echo "$_args" | sed -r 's/-vf \"?([^\" ]+)\"?/-vf \"crop=640:640,setdar=dar=1.33,scale_cuda=3540:2700:format=yuv420p\"/') # crop=640:640,setsar=sar=1.5
 fi
 
 if [[ "$DISABLE_FORCED_SUBTITLES" == "true" ]]; then
