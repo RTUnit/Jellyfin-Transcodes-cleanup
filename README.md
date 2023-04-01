@@ -33,7 +33,9 @@ Every user can have different available space configuration for transcodes direc
      - Truncate cleanup script log file when it reaches 10 MB
      - Maintenance of array variables internally used by cleanup script
      - Shutdown cleanup script if there is no TS segment appearing for given time period (1 hour)
-Pausing and resuming FFMPEG process (using SIGSTOP and SIGCONT signals) was implemented following suggestion in this post https://github.com/jellyfin/jellyfin/issues/2919#issuecomment-890036650.
+Idea of creating FFMPEG WRAP is taken from **ManuLinares** here:
+https://github.com/jellyfin/jellyfin/issues/1986#issuecomment-1019555157
+Pausing and resuming FFMPEG process (using SIGSTOP and SIGCONT signals) was implemented following suggestion by **vgarleanu** in this post https://github.com/jellyfin/jellyfin/issues/2919#issuecomment-890036650.
 
 ## Other notes on operation:
 - In order to launch the cleanup script it is recommended to configure FFMPEG WRAP script (instructions are given in setup/configure section)
