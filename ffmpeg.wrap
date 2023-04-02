@@ -1,7 +1,6 @@
 #!/bin/bash -
-#title           : ffmpeg properly downmix to stereo and downscale 4k to 1080p
-#description     :  This script is a wrapper for jellyfin ffmpeg to downmix audio
-#                :  to stereo using a custom formula, and downscale 4k to 1080p
+#title           :  Wrapper script for FFMPEG customizations
+#description     :  This script is a wrapper for Jellyfin ffmpeg
 
 FFMPEG_DIR=/config/ffmpeg
 TRANSCODES_DIR=/config/transcodes
@@ -108,14 +107,6 @@ if [[ "$CLEANUP_ENABLED" == "true" ]]; then
             echo $SEGMENT_POS $(date "+%F %T.%9N") > $WRAP_POS # "+%Y-%m-%d %H:%M:%S.%9N"
         fi
     fi
-
-    #
-    # Identify client so that clean-up script can store segment file buffering times separately for each
-    #
-    WRAP_CLIENT=$SEMAPHORE_DIR/$SEGMENT_ID.client
-    CLIENT_ID=DEFAULT
-    [[ "$_args" == *"-i \"file:/media-crt/"* ]] && CLIENT_ID=CRT_TV
-    echo $CLIENT_ID > $WRAP_CLIENT
     
     PRINT_LOG_TIMESTAMP=1
 
@@ -151,12 +142,6 @@ fi
 # Change number of threads to 1 - default 0 will spawn multiple threads based on many factors (CPU cores, encoding parameters, etc)
 # NOTE: Clean-up script will work as expected with multiple threads which is the default behavior, however single thread is enough for smooth operation
 _args=${_args/-threads 0/-threads 1}
-
-#_args=${_args/-hls_playlist_type vod/}
-#_args=${_args/-hls_list_size 0/-hls_list_size 5}
-
-# NOT WORKING: write to temp file and move to target ts file
-#_args="$_args -hls_flags temp_file"
 
 
 if [[ "$ARGS_LOG_ENABLED" == "true" ]]; then
