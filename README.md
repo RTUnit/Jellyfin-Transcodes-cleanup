@@ -64,7 +64,8 @@ https://github.com/jellyfin/jellyfin/issues/2919#issuecomment-890036650.
 
      | VARIABLE | ffmpeg.wrap | transcode.cleanup.sh | bufmon.sh | PURPOSE |
      | --- | :---: | :---: | :---: | --- |
-     | FFMPEG_DIR	| X	| X |	X |	Full path to directory that was created in step 1. |
+     | FFMPEG_DIR	| X	| X |	- |	Full path to directory that contains **transcode.cleanup.sh**, **ffmpeg.wrap.conf** |
+     | SCRIPT_DIR	| X	| X |	- |	Full path to directory that was created in step 1. |
      | TRANSCODES_DIR	| X |	X |	X	| Full path to transcodes directory |
      | SEMAPHORE_DIR |	X |	X |	X |	Full path to directory which will be used to store semaphore/flag files to by the cleanup script |
      | LOG_DIR | X | X | - | Full path to directory which will contain the cleanup script log file |
