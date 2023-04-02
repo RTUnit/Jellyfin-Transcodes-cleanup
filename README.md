@@ -84,6 +84,7 @@ https://github.com/jellyfin/jellyfin/issues/2919#issuecomment-890036650.
      apt install htop
      apt install procps
      ```
+     _**Note:** htop is optional - it can view parent-child system processes in a tree view (press `t` on keyboard)_
 5. Configure Jellyfin to use FFMPEG WRAP script instead of original FFMPEG binary:
      <img src="img/ffmpeg-path.png">
      
