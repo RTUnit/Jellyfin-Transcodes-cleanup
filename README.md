@@ -116,7 +116,7 @@ If the cleanup script is failing and log file is not providing sufficient inform
 ```
 . transcode.cleanup.sh 1 4
 ```
-Above command will start the script in TRACE mode.
+Above command will start the script in TRACE mode (indicated by argument 4). The first argument indicates if timestamps need to be printed to the log file (can be 0 or 1).
 
 **Note:** If another instance of cleanup script is running then manually started process will immediately exit. Refer to above instructions to first stop the running process and only then start it manually.
 
