@@ -2,9 +2,9 @@
 Cleanup script for autonomous cleanup of Jellyfin media server transcodes directory
 
 ## What problem it addresses?
-When using RAM drive for transcoding directory then the free space is limited (eg, to 1GB). When the directory is getting full (out of free space) then FFMPEG will create 0 size files, which will cause the playback to stall.
+When using RAM drive for mounting the transcodes directory then the free space is limited (eg, to 1GB). When the directory is getting full (out of free space) then FFMPEG will create 0 size files, which will cause the playback to stall.
 
-Jellyfin version 10.8.9 has very limited transcoding space management. It will remove files when the client has finished playback. FFMPEG process which is started by Jellyfin server to perform the transcoding, will generate files in transcodes directory until whole movie is processed, regardless of the current playback position of the client.
+Jellyfin version 10.8.9 has very limited transcoding space management. For example, it will remove files when the client has finished playback, but probably nothing more. FFMPEG process which is started by Jellyfin server to perform the transcoding, will generate files in transcodes directory until whole movie is processed, regardless of the current playback position of the client.
 
 Every user can have different available space configuration for transcodes directory, and the number of parallel users that will be watching media content. Therefore this cleanup script was created to perform calculation of available space per each active client, and control the FFMPEG process by pausing and resuming or restarting as necessary to ensure optimal space usage and avoid running out of free space.
 
