@@ -1,21 +1,19 @@
 #!/bin/bash
 # ! /bin/sh
 
-FFMPEG_DIR=/config/ffmpeg
+SCRIPT_DIR=/config/ffmpeg
 TRANSCODES_DIR=/config/transcodes
 SEMAPHORE_DIR=/config/semaphore # use RAM drive for FFMPEG transcoding PID and PAUSE files
 LOG_DIR=/config/log
 CLEANUP_LOG=$LOG_DIR/transcode.cleanup.log # create a single log file (easier when using OFF, WARN or INFO level logging)
 CLEANUP_LOG_MAXSIZE=10485760 # maximum size of the log file reaching which the log file will be truncated (default is 10485760 bytes=10 MB)
-#SEMAPHORE_DIR=$FFMPEG_DIR/log # use mounted directory on host machine for easier access
-#LOG_DIR=$FFMPEG_DIR/log
+#SEMAPHORE_DIR=$SCRIPT_DIR/log # use mounted directory on host machine for easier access
+#LOG_DIR=$SCRIPT_DIR/log
 #CLEANUP_LOG=$LOG_DIR/transcode.cleanup.$$.log # create separate log file per each cleanup wrap trigger (easier for DEBUG or TRACE level logging)
 CLEANUP_PID=$SEMAPHORE_DIR/transcode.cleanup.pid
 CLEANUP_CMD_EXIT=$SEMAPHORE_DIR/transcode.cleanup.stop # flag file instructing that cleanup script must shutdown
 CLEANUP_SHUTDOWN=$SEMAPHORE_DIR/transcode.cleanup.stopping # flag file informing that cleanup script is shutting down
 CLEANUP_STOPPED=$SEMAPHORE_DIR/transcode.cleanup.stopped # flag file informing that cleanup script has been shut down
-
-#TO DELETE: CLEANUP_PROG=$FFMPEG_DIR/transcode.cleanup.sh
 
 #
 # 0 - OFF    No logging (log file is not created)
@@ -174,11 +172,10 @@ function log_print_config {
     log_info "Starting Transcoding clean-up process"
     log_info ""
     log_info "Configuration:"
-    log_info "                          FFMPEG_DIR: $FFMPEG_DIR"
+    log_info "                          SCRIPT_DIR: $SCRIPT_DIR"
     log_info "                      TRANSCODES_DIR: $TRANSCODES_DIR"
     log_info "                       SEMAPHORE_DIR: $SEMAPHORE_DIR"
     log_info "                         CLEANUP_PID: $CLEANUP_PID"
-    log_info "                        CLEANUP_PROG: $CLEANUP_PROG"
     log_info "                         CLEANUP_LOG: $CLEANUP_LOG"
     log_info "                   CLEANUP_LOG_LEVEL: $CLEANUP_LOG_LEVEL (${CLEANUP_LOG_LEVEL_NAMES[$CLEANUP_LOG_LEVEL]})"
     log_info "              FFMPEG_WRAP_PAUSE_PERC: $FFMPEG_WRAP_PAUSE_PERC"
@@ -1289,8 +1286,8 @@ if [ -f $CLEANUP_PID ]; then
 
    OLD_CMD=$(cat /proc/$OLD_PID/cmdline 2>&1 | tr '\0' ' ')
 
-   if [[ "$OLD_CMD" == "/bin/bash $FFMPEG_DIR/transcode.cleanup.sh"* ]] \
-   || [[ "$OLD_CMD" == "bash $FFMPEG_DIR/transcode.cleanup.sh"* ]]; then
+   if [[ "$OLD_CMD" == "/bin/bash $SCRIPT_DIR/transcode.cleanup.sh"* ]] \
+   || [[ "$OLD_CMD" == "bash $SCRIPT_DIR/transcode.cleanup.sh"* ]]; then
 
         test_pid_active $OLD_PID
         OLD_PID_ACTIVE=$PID_ACTIVE
