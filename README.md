@@ -1,5 +1,5 @@
 # Jellyfin-Transcodes-cleanup
-Cleanup script for autonomous cleanup of Jellyfin media server transcodes directory
+Cleanup script for autonomous cleanup of [Jellyfin media server](https://github.com/jellyfin/jellyfin) transcodes directory
 
 ## What problem it addresses?
 When using RAM drive for mounting the transcodes directory then the free space is limited (eg, to 1GB). When the directory is getting full (out of free space) then FFMPEG will create 0 size files, which will cause the playback to stall.
@@ -102,7 +102,7 @@ In order to signal the script to terminate, perform following command: touch `$S
 , where `$SEMAPHORE_DIR` is the full path to directory containing semaphore files.
 
 ## Sample Docker command
-This Docker command will create Jellyfin v10.8.9 official container using RAM drive for transcoding directory for QNAP NAS with NVIDA graphics card:
+This Docker command will create [Jellyfin v10.8.9 official container](https://hub.docker.com/r/jellyfin/jellyfin) using RAM drive for transcoding directory for QNAP NAS with NVIDA graphics card:
 ```
 GPU=nvidia0 gpu-docker run -d --init --name jellyfin \
  --user 1000:100 \
