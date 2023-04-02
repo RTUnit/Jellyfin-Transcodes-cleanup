@@ -114,9 +114,9 @@ In order to signal the script to terminate, perform following command: touch `$S
 ## Starting cleanup script manually
 If the cleanup script is failing and log file is not providing sufficient information to understand reasons, then you can start it manually from terminal window:
 ```
-. transcode.cleanup.sh 1 4
+. transcode.cleanup.sh 4 1
 ```
-Above command will start the script in TRACE mode (indicated by second argument - 4). The first argument indicates if timestamps need to be printed to the log file (can be 0 or 1).
+Above command will start the script in TRACE mode (indicated by the first argument - 4). The second argument indicates if timestamps need to be printed to the log file (can be 0 or 1).
 
 **Note:** If another instance of cleanup script is running then manually started process will immediately exit. Refer to above instructions to first stop the running process and only then start it manually.
 
