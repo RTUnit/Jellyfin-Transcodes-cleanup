@@ -1,5 +1,6 @@
 # Jellyfin-Transcodes-cleanup
-Cleanup script for autonomous cleanup of [Jellyfin media server](https://github.com/jellyfin/jellyfin) transcodes directory
+Cleanup script for autonomous cleanup of [Jellyfin media server](https://github.com/jellyfin/jellyfin) transcodes directory.
+The script works with both - transcoding enabled or disabled, in Jellyfin settings (Server -> Playback).
 
 ## What problem it addresses?
 When using RAM drive for mounting the transcodes directory then the free space is limited (eg, to 1GB). When the directory is getting full (out of free space) then FFMPEG will create 0 size files, which will cause the playback to stall.
@@ -88,6 +89,10 @@ https://github.com/jellyfin/jellyfin/issues/2919#issuecomment-890036650.
 5. Configure Jellyfin to use FFMPEG WRAP script instead of original FFMPEG binary:
      <img src="img/ffmpeg-path.png">
      
+6. Optimize for your server
+
+     If your server is not using graphics card for hardware transcoding then the process for producing TS files may be too slow and you need to update some global variables in **transcode.cleanup.sh** to tweak the time intervals for various monitoring activities that the script is performing. Refer to issue https://github.com/RTUnit/Jellyfin-Transcodes-cleanup/issues/1 for instructions.
+
 ## Monitoring
 Included script **bufmon.sh** provides possibility to monitor TS files in transcodes directory and ensure proper operation of cleanup script.
 
