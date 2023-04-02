@@ -129,13 +129,19 @@ jellyfin/jellyfin:10.8.9 \
 && docker exec -it -u 0 jellyfin apt -y install htop \
 && docker exec -it -u 0 jellyfin apt -y install procps
 ```
-/config/transcodes is configured with 512MB RAM
-/config/log is configured with 100MB RAM (optional)
-/config/semaphore is configured with 10MB RAM (optional - used for flag files by cleanup script)
+`/config/transcodes` is configured with 512MB RAM
+
+`/config/log` is configured with 100MB RAM (optional)
+
+`/config/semaphore` is configured with 10MB RAM (optional - used for flag files by cleanup script)
+
 **Don't forhet to create dedicated user to run Jellyfin process.** (here it is user 1000 of group 100)
+
 **Don't forget to add your media folder.**
-Note: `htop` process installation is optional, but `ps` (procps) is required.
-Note: `--init` argument is used to efficiently remove orphan FFMPEG zombie processes that otherwise will pile-up in system process table in the container.
+
+**Note:** `htop` process installation is optional, but `ps` (procps) is required.
+
+**Note:** `--init` argument is used to efficiently remove orphan FFMPEG zombie processes that otherwise will pile-up in system process table in the container.
 
 ## Possible further improvements
 - Display message to user when there is insufficient space for TS files (for example, when too many simultaneous clients do playback) - the idea was to generate custom      TS file from cleanup script with overlay text which would be automatically red by the client, however problem with HLS files is that they contain a lot of HLS metadata which is required by hls.js in Jellyfin client (for example, to ensure the proper sequence number and length of the fragment).
