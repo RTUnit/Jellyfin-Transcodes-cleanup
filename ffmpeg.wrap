@@ -2,22 +2,23 @@
 #title           :  Wrapper script for FFMPEG customizations
 #description     :  This script is a wrapper for Jellyfin ffmpeg
 
-FFMPEG_DIR=/config/ffmpeg
+FFMPEG_DIR=/usr/lib/jellyfin-ffmpeg # non-Docker server path to FFMPEG usually is /usr/bin/ffmpeg
+SCRIPT_DIR=/config/ffmpeg
 TRANSCODES_DIR=/config/transcodes
-CLEANUP_PROG=$FFMPEG_DIR/transcode.cleanup.sh
+CLEANUP_PROG=$SCRIPT_DIR/transcode.cleanup.sh
 
 SEMAPHORE_DIR=/config/semaphore # use RAM drive for FFMPEG transcoding PID and PAUSE files
 LOG_DIR=/config/log
 CLEANUP_LOG=$LOG_DIR/transcode.cleanup.log # create a single log file (easier when using OFF, WARN or INFO level logging)
-#SEMAPHORE_DIR=$FFMPEG_DIR/log # use mounted directory on host machine for easier access
-#LOG_DIR=$FFMPEG_DIR/log
+#SEMAPHORE_DIR=$SCRIPT_DIR/log # use mounted directory on host machine for easier access
+#LOG_DIR=$SCRIPT_DIR/log
 #CLEANUP_LOG=$LOG_DIR/transcode.cleanup.$$.log # create separate log file per each cleanup wrap trigger (easier for DEBUG or TRACE level logging)
 CLEANUP_PID=$SEMAPHORE_DIR/transcode.cleanup.pid
 
 #
 # Set the path/name of the configuration file
 #
-conf="$FFMPEG_DIR/ffmpeg.wrap.conf"
+conf="$SCRIPT_DIR/ffmpeg.wrap.conf"
 # prop - reads value of a propery from the configuration file
 # use $(prop 'property.name') to read properties from a key=value lines in file
 function prop {
@@ -50,8 +51,7 @@ CLEANUP_LOG_LEVEL=$(prop 'transcode.cleanup.log.level')
 ARGS_LOG_ENABLED=$(prop 'ffmpeg.args.log')
 DISABLE_FORCED_SUBTITLES=$(prop 'disable.forced.subtitles')
 
-#ffmpeg="/usr/bin/ffmpeg"
-ffmpeg="/usr/lib/jellyfin-ffmpeg/ffmpeg"
+ffmpeg="$FFMPEG_DIR/ffmpeg"
 
 #Add quotes for arguments with "spaces", "semicolon" and "parentheses")
 for x in "${@}" ; do
