@@ -52,6 +52,7 @@ https://github.com/jellyfin/jellyfin/issues/2919#issuecomment-890036650.
 
 ## How to setup/configure
 1. Create new directory and download files from repository
+   
    Note: do this with the same user that is running Jellyfin, for Docker container use: `docker exec -it container_name bash`
 2. Grant execute permission:
    ```
