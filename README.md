@@ -100,11 +100,27 @@ Below screenshot shows bufmon.sh displaying two parallel clients streaming TS fi
 
 <img src="img/bufmon.png">
 
+Start bufmon from command line:
+```
+. bufmon.sh
+```
+
 ## Stopping the cleanup process
 It may be necessary to forcefully terminate cleanup process, for example, to re-launch **transcode.cleanup.sh** after adjusting configuration variables inside the script.
 
 In order to signal the script to terminate, perform following command: touch `$SEMAPHORE_DIR/transcode.cleanup.stop`
 , where `$SEMAPHORE_DIR` is the full path to directory containing semaphore files.
+
+## Starting cleanup script manually
+If the cleanup script is failing and log file is not providing sufficient information to understand reasons, then you can start it manually from terminal window:
+```
+. transcode.cleanup.sh 1 4
+```
+Above command will start the script in TRACE mode.
+
+**Note:** If another instance of cleanup script is running then manually started process will immediately exit. Refer to above instructions to first stop the running process and only then start it manually.
+
+If the script has syntax problem then it should be printed in the terminal window, indicating the line number. If you made changes to the particular line number then try to revert these changes and re-run the script again. The process may exit or continue running so you have to check if stopping the script is required before starting again.
 
 ## Sample Docker command
 This Docker command will create [Jellyfin v10.8.9 official container](https://hub.docker.com/r/jellyfin/jellyfin) using RAM drive for transcoding directory for QNAP NAS with NVIDA graphics card:
