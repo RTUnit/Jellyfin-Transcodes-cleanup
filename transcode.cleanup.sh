@@ -2302,6 +2302,17 @@ while true; do
                 else
                     log_debug "Starting inactivity monitoring. If no TS file will be accessed in $TS_INACTIVITY_RESTART_SECONDS seconds then FFMPEG will be restarted and all TS files deleted for Segment ID=$SEGMENT_ID"
                     store_ts_inactive_seconds $SEGMENT_ID
+                    #
+                    # Check the current status of FFMPEG process, and resume if it is paused (state = T)
+                    #
+                    # Explanation: It may happen that FFMPEG is paused just right after position change due to exceeded allowed space by existing
+                    # TS file sizes. The cleanup script will delete most of the TS files in the next loop cycle, but the new FFMPEG process will
+                    # remain paused and will not produce TS files for the new position, hence we can face the inactivity. 
+                    #
+                    if is_ffmpeg_paused $SEGMENT_ID; then
+                        log_info "FFMPEG for Segment ID=$SEGMENT_ID is paused. Resuming FFMPEG to see if TS files will get produced.";
+                        resume_ffmpeg $SEGMENT_ID
+                    fi
                 fi
               fi # [ $LA_FOUND -eq 1 ]
 
