@@ -80,7 +80,20 @@ https://github.com/jellyfin/jellyfin/issues/2919#issuecomment-890036650.
      
      _**Note:** there are many more variables possible to configure in **transcode.cleanup.sh**, purpose of those is given in the script file itself._
      
-4. Install required Unix/Linux packages:
+4. Optionally update properties in `/config/ffmpeg/`**`ffmpeg.wrap.conf`** if you want change the default behavior:
+
+     _Optional configuration:_
+     
+     | PROPERTY | SUPPORTED VALUES | DESCRIPTION |
+     | --- | :---: | --- |
+     | `transcode.cleanup` | true \| false | Enable transcoding directory cleanup process which will maintain available free space while FFMPEG process is running.<br><br>Disabling this property will prevent trigger of the transcodes cleanup script, however if the process is already running then it won't be killed by just updating this property - the cleanup process will shutdown gracefully when transcodes directory has no files during certain period (1 hour by default).<br><br>Visit the below chapter _Stopping the cleanup process_ to find out how to force shutdown of the running cleanup process. |
+     | `transcode.cleanup.log.level` | 0 \| 1 \| 2 \| 3 \| 4 | Log console and error output of **ffmpeg.wrap** to log files in `/config/ffmpeg/log`<br><br><table><tr><td style="background-color:#FFFDF6">⚠ Delete the files manually after use. Turn this property off when<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;not needed, to avoid useless writes to disk.</td></th></table>0 - OFF: No logging (log file is not created)<br>1 - WARN: Log warnings (very few occurences)<br>2 - INFO: Log few most important events (deletion of files)<br>3 - DEBUG: Log explanatory messages<br>4 - TRACE: Log commands executed during processing and their output |
+     | `ffmpeg.args.log` | true \| false | Used to debug ffmpeg command line. By enabling this property the modified ffmpeg.wrap command line will be written to file: /config/ffmpeg/log/args.log<br><br><table><tr><td style="background-color:#FFFDF6">⚠ Delete the files manually after use. Turn this property off when<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;not needed, to avoid useless writes to disk.</td></th></table> |
+     | `disable.forced.subtitles` | true \| false | Subtitles may cause error for certain clients, so use this to attempt to disable them |
+     
+     _**Note:** `disable.forced.subtitles` is not related to transcodes cleanup. It is an example configuration demonstrating how to add more customizations to FFMPEG WRAP script to modify FFMPEG arguments.
+
+5. Install required Unix/Linux packages:
      For Jellyfin in Docker container which is running on Debian:
      ```
      apt update
@@ -88,10 +101,16 @@ https://github.com/jellyfin/jellyfin/issues/2919#issuecomment-890036650.
      apt install procps
      ```
      _**Note:** htop is optional - it can view parent-child system processes in a tree view (press `t` on keyboard)_
-5. Configure Jellyfin to use FFMPEG WRAP script instead of original FFMPEG binary:
+6. Configure Jellyfin to use FFMPEG WRAP script instead of original FFMPEG binary:
+
+     Create soft link for **ffmpeg.wrap** in `/usr/lib/jellyfin-ffmpeg` directory. **ffprobe** need to match with **ffmpeg.wrap** naming pattern, so it also requires a soft link as **ffprobe.wrap**.
+     ```
+     ln -sf /config/ffmpeg/ffmpeg.wrap /usr/lib/jellyfin-ffmpeg/ffmpeg.wrap
+     ln -sf /usr/lib/jellyfin-ffmpeg/ffprobe /usr/lib/jellyfin-ffmpeg/ffprobe.wrap
+     ```
      <img src="img/ffmpeg-path.png">
      
-6. Optimize for your server
+7. Optimize for your server
 
      If your server is not using graphics card for hardware transcoding then the process for producing TS files may be too slow and you need to update some global variables in **transcode.cleanup.sh** to tweak the time intervals for various monitoring activities that the script is performing. Refer to issue https://github.com/RTUnit/Jellyfin-Transcodes-cleanup/issues/1 for instructions.
 
