@@ -117,14 +117,26 @@ https://github.com/jellyfin/jellyfin/issues/2919#issuecomment-890036650.
 ## Monitoring
 Included script **bufmon.sh** provides possibility to monitor TS files in transcodes directory and ensure proper operation of cleanup script.
 
-Below screenshot shows bufmon.sh displaying two parallel clients streaming TS files - one is buffering file `319f91008669c37cf0bf89fc3ee95ddd`**624**`.ts` and the other `273e7843d762c10d76379293ea75a1a`**128**`.ts`. Also it shows the total used space in `/config/transcodes` directory for both clients is 70% from 512MB of total space. FFMPEG for the first client is paused for 7 seconds and the other is running (generating TS files).
+Below screenshot shows **bufmon.sh** displaying two parallel clients streaming TS files - one has served file `542c649db8924ec70687b1e57684e31e`**344**`.ts` of 3.76 MB and the other is serving file `76ccf31da20662961496aa742cbfdf3f`**15**`.ts` of 14.44 MB. Also it shows the total used space in `/config/transcodes` directory for both clients is 41% from 512MB of total space. FFMPEG for the first client is paused for 2 seconds and the other is running (generating TS files).
 
-<img src="img/bufmon.png">
+<img src="img/bufmon1.1.png">
 
 Start bufmon from command line:
 ```
 . bufmon.sh
 ```
+Features
+- Display TS files and total count by each segment
+- Display TS file sizes
+- Indicate TS file currently being served to the client¹
+- Indicate TS file currently being played back by the client²
+- Display playback start position ("POS" - first TS file played by the client)
+- Display FFMPEG WRAP process ID ("PID") which is paused or generating files ("STATE")
+- Display total space, used space and available space for transacodes directory
+________
+¹ Bufmon shows only the time when TS file was red by web server. It cannot predict the time when it was finally delivered to the client.
+
+² Bufmon is assuming that TS file that was served more than 1 second ago is currently being played back
 
 ## Stopping the cleanup process
 It may be necessary to forcefully terminate cleanup process, for example, to re-launch **transcode.cleanup.sh** after adjusting configuration variables inside the script.
