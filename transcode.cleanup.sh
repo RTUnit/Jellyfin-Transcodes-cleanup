@@ -45,9 +45,9 @@ TS_SPACE_RESERVED_MAX_DIVIDER=0        # this is maximum divider - used to speci
                                        #              latest TS files will get deleted, however when 3rd playback is started then this variable will be ignored and space will be
                                        #              calculated for 3 TS segments
 TS_TOLERABLE_SPACE_OVERRUN_PERC=3      # this is the additional allowed (tolerable) space when allowed space is exceeded by TS files sizes
-TS_INACTIVITY_RESTART_SECONDS=15       # FFMPEG will be restarted and TS files deleted when PID and TS files exist, but no file is accessed by client for this number of seconds
+TS_INACTIVITY_RESTART_SECONDS=90       # FFMPEG will be restarted and TS files deleted when PID and TS files exist, but no file is accessed by client for this number of seconds
 KEEP_TS_MOD_SECONDS=1                  # number of seconds after Last Modified Date/Time when TS files will not be deleted
-KEEP_PID_MOD_SECONDS=30                # number of seconds after Last Modified Date/Time when PID files will not be deleted
+KEEP_PID_MOD_SECONDS=120                # number of seconds after Last Modified Date/Time when PID files will not be deleted
 TRANSCODES_DIR_ESCAPED=${TRANSCODES_DIR//\//\\\/} # convert "/config/transcodes" to "\/config\/transcodes"
 #SCHEDULE_RESTART_FFMPEG_TS_ID_COUNT=5  # number of segments left till scheduled restart of FFMPEG process
 SCHEDULE_RESTART_FFMPEG_TS_ID_COUNT=2  # number of segments left till scheduled restart of FFMPEG process - 2 is default value, because
