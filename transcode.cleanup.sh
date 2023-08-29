@@ -2651,13 +2651,15 @@ while true; do
     # log filesize maintenance every 5 minutes (300 seconds)
     #
     if [ $(($SECONDS - CLEANUP_LOG_MAXSIZE_COUNTER)) -ge 300 ]; then
+      if [ -f $CLEANUP_LOG ]; then
         CLEANUP_LOG_SIZE=$(stat -c%s $CLEANUP_LOG)
         if [ $CLEANUP_LOG_SIZE -gt $CLEANUP_LOG_MAXSIZE ]; then
             echo "Transcoding cleanup log file maintenance. Size has reached $CLEANUP_LOG_SIZE bytes so the log file will be truncated"
             :> $CLEANUP_LOG
             log_print_config # print information at the top of the log file
         fi
-        CLEANUP_LOG_MAXSIZE_COUNTER=$SECONDS
+      fi
+      CLEANUP_LOG_MAXSIZE_COUNTER=$SECONDS
     fi
 
     [ $INITIALIZING -eq 1 ] && INITIALIZING=0 # initialization is completed
