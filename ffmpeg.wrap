@@ -121,9 +121,8 @@ if [[ "$CLEANUP_ENABLED" == "true" ]]; then
             sh -c 'nohup /bin/bash '$CLEANUP_PROG' '$CLEANUP_LOG_LEVEL' '$PRINT_LOG_TIMESTAMP' >> '$CLEANUP_LOG' 2>&1 &'
         fi
     else
-        if [[ "$_args" != *"$TRANSCODES_DIR"* ]]; then
-            #echo test
-            sh -c 'nohup /bin/bash -c '$CLEANUP_PROG' 0 '$PRINT_LOG_TIMESTAMP' 2>&1 &'
+        if [[ "$_args" == *"$TRANSCODES_DIR"* ]]; then
+            sh -c 'nohup /bin/bash '$CLEANUP_PROG' 0 '$PRINT_LOG_TIMESTAMP' 2>&1 &'
         fi
     fi
 fi
