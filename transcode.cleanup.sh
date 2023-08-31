@@ -1392,9 +1392,20 @@ while true; do
         log_debug "TIME NOW: $(date +'$DATE_FORMAT')"
     fi
     if [ -f $CLEANUP_CMD_EXIT ]; then
-        log_warn "Encountered stop flag file which signals current process to exit. Exiting"
-        rm -f $CLEANUP_CMD_EXIT 2>>$CLEANUP_LOG
-        exit
+        #
+        # If maintenance for abendoned FFMPEG processes was NOT done within last 10 seconds then
+        # make one more loop in the clean-up script to perform this maintenance immediately
+        # (configure $CLEANUP_ABENDONED_PROCESSES_LAST variable which will trigger the maintenance task)
+        #
+        if [ $(($SECONDS - $CLEANUP_ABENDONED_PROCESSES_LAST)) -le 10 ]; then
+          log_warn "Encountered stop flag file which signals current process to exit. Exiting"
+          rm -f $CLEANUP_CMD_EXIT 2>>$CLEANUP_LOG
+          exit
+        else
+          log_warn "Encountered stop flag file which signals current process to exit."
+          log_warn "Triggering abendoned FFMPEG processes clean-up before exit because it was not done within last 10 seconds."
+          CLEANUP_ABENDONED_PROCESSES_LAST=$(($SECONDS-$CLEANUP_ABENDONED_PROCESSES_INTERVAL-1))
+        fi;
     fi
     #
     # Find if there are any 0-size files, then set NO_SPACE_LEFT flag
