@@ -141,7 +141,7 @@ ________
 ## Stopping the cleanup process
 It may be necessary to forcefully terminate cleanup process, for example, to re-launch **transcode.cleanup.sh** after adjusting configuration variables inside the script.
 
-In order to signal the script to terminate, perform following command: touch `$SEMAPHORE_DIR/transcode.cleanup.stop`
+In order to signal the script to terminate, perform following command: `touch $SEMAPHORE_DIR/transcode.cleanup.stop`
 , where `$SEMAPHORE_DIR` is the full path to directory containing semaphore files.
 
 ## Starting cleanup script manually
