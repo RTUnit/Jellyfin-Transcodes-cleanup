@@ -1,6 +1,6 @@
 # Jellyfin-Transcodes-cleanup
 Cleanup script for autonomous cleanup of [Jellyfin media server](https://github.com/jellyfin/jellyfin) transcodes directory.
-The script works with both - transcoding enabled or disabled, in Jellyfin settings (Server -> Playback).
+The script works with both - transcoding enabled or disabled, in Jellyfin settings (Server -> Playback). The script will automatically start when media playback is started in Jellyfin, and it will automatically terminate itself if no playback is running in given time period (eg, 1 hour).
 
 ## What problem it addresses?
 When using RAM drive for mounting the transcodes directory then the free space is limited (eg, to 1GB). When the directory is getting full (out of free space) then FFMPEG will create 0 size files, which will cause the playback to stall.
