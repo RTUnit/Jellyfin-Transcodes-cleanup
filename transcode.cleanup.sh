@@ -49,8 +49,8 @@ TS_INACTIVITY_RESTART_SECONDS=90       # FFMPEG will be restarted and TS files d
 KEEP_TS_MOD_SECONDS=1                  # number of seconds after Last Modified Date/Time when TS files will not be deleted
 KEEP_PID_MOD_SECONDS=120                # number of seconds after Last Modified Date/Time when PID files will not be deleted
 TRANSCODES_DIR_ESCAPED=${TRANSCODES_DIR//\//\\\/} # convert "/config/transcodes" to "\/config\/transcodes"
-#SCHEDULE_RESTART_FFMPEG_TS_ID_COUNT=5  # number of segments left till scheduled restart of FFMPEG process
-SCHEDULE_RESTART_FFMPEG_TS_ID_COUNT=2  # number of segments left till scheduled restart of FFMPEG process - 2 is default value, because
+SCHEDULE_RESTART_FFMPEG_TS_ID_COUNT=6  # number of segments left till scheduled restart of FFMPEG process
+#SCHEDULE_RESTART_FFMPEG_TS_ID_COUNT=2  # number of segments left till scheduled restart of FFMPEG process - 2 is default value, because
                                        # Jellyfin checks for existance of the next two TS files following after currently buffered (Last Accessed) and
                                        # if the second file does not exist then it checks if FFMPEG process is running, further there are two cases:
                                        # a) FFMPEG process is running - client playback will stall because there is only one file after currently buffered (buffering of last one will not start)
@@ -61,6 +61,8 @@ SCHEDULE_RESTART_FFMPEG_TS_ID_COUNT=2  # number of segments left till scheduled 
                                        #          FFMPEG process will be killed by this script when TS ID=22 will be buffered (deleted file - 2 files).
                                        #          Jellyfin will immediately start new FFMPEG process to create TS ID=24 and playback will continue without interruption.
 SCHEDULE_RESUME_FFMPEG_TS_ID_COUNT=3   # number of segments left till scheduled resume of FFMPEG process
+RESTART_FFMPEG_INSTEAD_OF_RESUME=1     # in certain PC configurations FFMPEG is gradually slowing down to create TS files, it is more efficient to restart FFMPEG instead of resume
+                                       # because the new process will create TS files more efficienlty
 DEFAULT_LA_BUFFER_TIME=6               # default=6. Last x TS segment rotation times (time required to buffer till next TS file is accessed by player) for avg calculation
 #DEFAULT_FFMPEG_RESTART_TIME=25         # default=25. Last x FFMPEG restart times for avg calculation
 SEGMENT_LA_BUFF_STAT_SIZE=3            # how many entries will be stored to calculate average statistics (for array SEGMENT_LA_BUFF_TIME_STAT and SEGMENT_LA_BUFF_SIZE_STAT)
@@ -709,15 +711,22 @@ function cancel_ffmpeg_restart_if_scheduled {
 # Store TS ID provided in argument $2.
 # Only most earlier TS ID will be stored when calling function multiple times
 #
+# Note if global variable RESTART_FFMPEG_INSTEAD_OF_RESUME = 1 then FFMPEG will be restarted instead of resume
+#
 function schedule_ffmpeg_resume_for_ts_id {
-    local value=${SCHEDULE_RESUME_FFMPEG_FOR_TS_ID[$1]}
-    if [ "$value" == "" ]; then
-        SCHEDULE_RESUME_FFMPEG_FOR_TS_ID[$1]=$2
-        log_info "Scheduled resume of FFMPEG process for TS ID: $2"
+    if [ $RESTART_FFMPEG_INSTEAD_OF_RESUME -eq 1 ]; then
+        log_info "Scheduling restart instead of resume because of setting RESTART_FFMPEG_INSTEAD_OF_RESUME=1"
+        schedule_ffmpeg_restart_for_ts_id $1 $2
     else
-        if [ $2 -lt $value ]; then # store earliest TS ID
+        local value=${SCHEDULE_RESUME_FFMPEG_FOR_TS_ID[$1]}
+        if [ "$value" == "" ]; then
             SCHEDULE_RESUME_FFMPEG_FOR_TS_ID[$1]=$2
             log_info "Scheduled resume of FFMPEG process for TS ID: $2"
+        else
+            if [ $2 -lt $value ]; then # store earliest TS ID
+                SCHEDULE_RESUME_FFMPEG_FOR_TS_ID[$1]=$2
+                log_info "Scheduled resume of FFMPEG process for TS ID: $2"
+            fi
         fi
     fi
 }
